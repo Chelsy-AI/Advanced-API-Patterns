@@ -3,14 +3,26 @@ version: "3.8"
 services:
   api:
     build: .
+    container_name: task_api
     ports:
       - "8000:8000"
     depends_on:
       - redis
     environment:
-      - REDIS_URL=redis://redis:6379/0
+      REDIS_URL: "redis://redis:6379/0"
+    networks:
+      - task_network
+    restart: unless-stopped
 
   redis:
     image: redis:7
+    container_name: task_redis
     ports:
       - "6379:6379"
+    networks:
+      - task_network
+    restart: unless-stopped
+
+networks:
+  task_network:
+    driver: bridge

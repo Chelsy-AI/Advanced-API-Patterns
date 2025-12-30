@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
-from datetime import datetime
+from datetime import datetime, timezone
 from .database import Base
 
 class Task(Base):
@@ -9,7 +9,7 @@ class Task(Base):
     title = Column(String, nullable=False)
     description = Column(String, nullable=True)
     completed = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
 
 class User(Base):

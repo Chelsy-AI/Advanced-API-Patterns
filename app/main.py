@@ -5,6 +5,8 @@ import sys
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import SQLAlchemyError
+import redis
 
 from app.database import Base, engine, redis_client
 from app.routers import tasks, auth
@@ -23,7 +25,10 @@ app = FastAPI(
 # Database Initialization
 # -------------------------------------------------
 
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+except SQLAlchemyError as e:
+    print(f"Error creating database tables: {e}")
 
 # -------------------------------------------------
 # CORS Configuration
@@ -112,25 +117,30 @@ def health_check():
 
 @app.get("/health/detailed", tags=["Health"])
 def detailed_health_check():
+    health_status = {"status": "ok", "database": "unknown", "redis": "unknown"}
+
+    # Database check
     try:
-        # Database check
         with engine.connect() as conn:
             conn.execute("SELECT 1")
+        health_status["database"] = "ok"
+    except SQLAlchemyError as e:
+        health_status["database"] = f"error: {e}"
+        health_status["status"] = "error"
 
-        # Redis check
-        redis_client.ping()
+    # Redis check
+    try:
+        if redis_client:
+            redis_client.ping()
+            health_status["redis"] = "ok"
+        else:
+            health_status["redis"] = "not connected"
+            health_status["status"] = "error"
+    except redis.RedisError as e:
+        health_status["redis"] = f"error: {e}"
+        health_status["status"] = "error"
 
-        return {
-            "status": "ok",
-            "database": "ok",
-            "redis": "ok",
-        }
-
-    except Exception as e:
-        return {
-            "status": "error",
-            "detail": str(e),
-        }
+    return health_status
 
 # -------------------------------------------------
 # API Versioned Routers
