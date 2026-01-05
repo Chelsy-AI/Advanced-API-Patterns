@@ -10,6 +10,8 @@ import redis
 
 from app.database import Base, engine, redis_client
 from app.routers import tasks, auth
+from dotenv import load_dotenv
+load_dotenv()
 
 # -------------------------------------------------
 # App Initialization
